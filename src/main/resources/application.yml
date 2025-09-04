@@ -1,0 +1,36 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: validate
+  output:
+    ansi:
+      enabled: always
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 300000
+      max-lifetime: 600000
+      connection-timeout: 30000
+      leak-detection-threshold: 60000
+    password: ${DB_PASSWORD:postgres}
+    username: ${DB_USERNAME:postgres}
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/blog}
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.yaml
+
+application:
+  title: @project.parent.artifactId@
+  version: @project.version@
+logging:
+  level:
+    root: INFO
+    org.zalando.logbook: TRACE
+app:
+  housekeeping:
+    cron: "0 0 2 * * ?"
+    posts:
+      inactive-days: 7
+      delete-limit: 1000

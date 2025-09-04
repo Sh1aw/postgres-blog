@@ -1,0 +1,25 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false # Disable in tests for cleaner output
+    database-platform: org.hibernate.dialect.H2Dialect
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/init/initTables.sql
+
+  cache:
+    type: simple # Use simple cache for tests
+
+logging:
+  level:
+    org.hibernate.SQL: WARN # Reduce noise in tests
+    org.hibernate.type.descriptor.sql.BasicBinder: WARN
+    root: WARN
