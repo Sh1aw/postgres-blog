@@ -19,7 +19,7 @@ import ru.ext.edu.postgres.blog.model.ToggleLikeRequest;
 @Transactional(readOnly = true)
 public class LikeService {
     private final UserService userService;
-    private final PostRepository postRepository; // Fixed naming
+    private final PostRepository postRepository;
     private final LikeRepository likeRepository;
 
     @Transactional

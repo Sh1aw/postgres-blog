@@ -3,6 +3,7 @@ package ru.ext.edu.postgres.blog.service;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.ext.edu.postgres.blog.entity.User;
 import ru.ext.edu.postgres.blog.exception.EntityNotFoundException;
 import ru.ext.edu.postgres.blog.mapper.UserMapper;
@@ -11,6 +12,7 @@ import ru.ext.edu.postgres.blog.repository.UserRepository;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class UserService {
     private final UserRepository userRepository;
     private final UserMapper userMapper;
@@ -28,6 +30,7 @@ public class UserService {
                 .orElseThrow(() -> new EntityNotFoundException("User", userId));
     }
 
+    @Transactional
     public Long createUser(@NotNull CreateUserRequest createUserRequest) {
         if (userRepository.existsByLogin(createUserRequest.getLogin())) {
             throw new IllegalArgumentException("User already exists");

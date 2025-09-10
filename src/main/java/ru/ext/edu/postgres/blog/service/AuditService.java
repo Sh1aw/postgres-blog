@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import ru.ext.edu.postgres.blog.mapper.PostAuditMapper;
 import ru.ext.edu.postgres.blog.model.PageMetadata;
 import ru.ext.edu.postgres.blog.model.PagePostAudit;
@@ -12,6 +13,7 @@ import ru.ext.edu.postgres.blog.repository.PostAuditRepository;
 
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class AuditService {
     private final PostAuditRepository postAuditRepository;
     private final PostAuditMapper postAuditMapper;

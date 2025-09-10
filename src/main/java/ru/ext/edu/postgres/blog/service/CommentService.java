@@ -54,6 +54,7 @@ public class CommentService {
         ).getId();
     }
 
+    @Transactional
     public void hideComment(@NotNull Long commentId) {
         var comment = commentRepository.findById(commentId).orElseThrow();
         commentRepository.save(comment.setActive(false));
