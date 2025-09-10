@@ -1,0 +1,740 @@
+openapi: 3.0.1
+info:
+  title: Blog API
+  description: API для управления блогом (посты, комментарии, лайки, пользователи)
+  version: 1.0.0
+servers:
+  - url: 'http://localhost:8080'
+    description: Development server
+tags:
+  - name: Auth
+    description: Операции аутентификации
+  - name: User
+    description: Операции с пользователями
+  - name: Post
+    description: Операции с постами
+  - name: Comment
+    description: Операции с комментариями
+  - name: Audit
+    description: Операции аудита изменений постов
+paths:
+  /login:
+    post:
+      summary: Аутентификация пользователя
+      description: Выполняет вход пользователя по логину и возвращает его идентификатор.
+      operationId: login
+      tags:
+        - Auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+      responses:
+        '201':
+          description: Идентификатор пользователя
+          content:
+            application/json:
+              schema:
+                description: Идентификатор пользователя
+                type: integer
+                format: int64
+                example: 123
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /users:
+    post:
+      summary: Создать нового пользователя
+      description: Создает нового пользователя в системе.
+      operationId: createUser
+      tags:
+        - User
+      requestBody:
+        description: Данные нового пользователя
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Идентификатор созданного пользователя
+          content:
+            application/json:
+              schema:
+                type: integer
+                format: int64
+                example: 456
+        '400':
+          $ref: '#/components/responses/BadRequest'
+  /users/{userId}:
+    get:
+      summary: Получить пользователя по ID
+      description: Возвращает информацию о пользователе по его идентификатору.
+      operationId: getUserById
+      tags:
+        - User
+      parameters:
+        - in: path
+          name: userId
+          schema:
+            type: integer
+            format: int64
+          required: true
+          description: Идентификатор пользователя
+      responses:
+        '200':
+          description: Информация о пользователе
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserDto"
+        '404':
+          description: Пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponseTO"
+  /posts:
+    get:
+      summary: Получить список постов
+      description: Возвращает страницу постов с пагинацией. Можно фильтровать по тегу или выполнять полнотекстовый поиск.
+      parameters:
+        - $ref: '#/components/parameters/pageable'
+        - name: tag
+          in: query
+          description: Имя тега для фильтрации постов
+          required: false
+          schema:
+            type: string
+            example: "технологии"
+        - name: query
+          in: query
+          description: Запрос для полнотекстового поиска по теме и тексту поста
+          required: false
+          schema:
+            type: string
+            example: "Spring Boot"
+      responses:
+        '200':
+          description: Успешное получение страницы постов
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagePost'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+      tags:
+        - Post
+    post:
+      summary: Создать новый пост
+      description: Создает новый пост в блоге.
+      operationId: createPost
+      requestBody:
+        description: Данные нового поста
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePostRequest'
+      responses:
+        '201':
+          description: Идентификатор созданного поста
+          content:
+            application/json:
+              schema:
+                type: integer
+                format: int64
+                example: 789
+        '400':
+          $ref: '#/components/responses/BadRequest'
+      tags:
+        - Post
+  /posts/{postId}:
+    parameters:
+      - $ref: '#/components/parameters/postId'
+    put:
+      summary: Обновить пост
+      description: Обновляет существующий пост.
+      operationId: updatePost
+      requestBody:
+        description: Обновленные данные поста
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePostRequest'
+      responses:
+        '200':
+          description: Идентификатор обновленного поста
+          content:
+            application/json:
+              schema:
+                type: integer
+                format: int64
+                example: 789
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - Post
+    patch:
+      summary: Скрыть пост
+      description: Скрыть пост по его идентификатору.
+      operationId: deletePost
+      responses:
+        '204':
+          description: Пост успешно Скрыт
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - Post
+  /comments:
+    get:
+      summary: Получить список комментариев
+      description: Возвращает страницу комментариев с пагинацией. Можно фильтровать по посту.
+      parameters:
+        - name: postId
+          in: query
+          schema:
+            type: integer
+            format: int64
+          description: Идентификатор поста для фильтрации комментариев
+        - $ref: '#/components/parameters/pageable'
+      responses:
+        '200':
+          description: Успешное получение страницы комментариев
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PageComment'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+      tags:
+        - Comment
+    post:
+      summary: Создать новый комментарий
+      description: Создает новый комментарий к посту.
+      operationId: createComment
+      requestBody:
+        description: Данные нового комментария
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCommentRequest'
+      responses:
+        '201':
+          description: Идентификатор созданного комментария
+          content:
+            application/json:
+              schema:
+                type: integer
+                format: int64
+                example: 101
+        '400':
+          $ref: '#/components/responses/BadRequest'
+      tags:
+        - Comment
+  /comments/{commentId}:
+    parameters:
+      - $ref: '#/components/parameters/commentId'
+    put:
+      summary: Обновить комментарий
+      description: Обновляет существующий комментарий.
+      operationId: updateComment
+      requestBody:
+        description: Обновленные данные комментария
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCommentRequest'
+      responses:
+        '200':
+          description: Идентификатор обновленного комментария
+          content:
+            application/json:
+              schema:
+                type: integer
+                format: int64
+                example: 101
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - Comment
+    patch:
+      summary: Скрыть комментарий
+      description: Скрыть комментарий по его идентификатору.
+      operationId: deleteComment
+      responses:
+        '204':
+          description: Комментарий успешно скрыт
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - Comment
+  /posts/{postId}/like:
+    parameters:
+      - $ref: '#/components/parameters/postId'
+    post:
+      summary: Переключить лайк поста
+      description: Добавляет или удаляет лайк от указанного пользователя к посту. Возвращает актуальное состояние лайка.
+      operationId: toggleLike
+      requestBody:
+        description: Идентификатор пользователя, переключающего лайк
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: integer
+                  format: int64
+                  description: Идентификатор пользователя
+                  example: 123
+              required:
+                - userId
+      responses:
+        '200':
+          description: Актуальное состояние лайка (true - лайк есть, false - лайка нет)
+          content:
+            application/json:
+              schema:
+                type: boolean
+                example: true
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          description: Пост или пользователь не найден
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponseTO'
+      tags:
+        - Post
+  /audit/{postId}:
+    get:
+      summary: Получить список изменений по посту
+      description: Возвращает страницу записей аудита (истории изменений) для указанного поста.
+      parameters:
+        - $ref: '#/components/parameters/postId'
+        - $ref: '#/components/parameters/pageable'
+      responses:
+        '200':
+          description: Успешное получение страницы записей аудита
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PagePostAudit'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      tags:
+        - Audit
+components:
+  parameters:
+    postId:
+      name: postId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+      description: Идентификатор поста
+    commentId:
+      name: commentId
+      in: path
+      required: true
+      schema:
+        type: integer
+        format: int64
+      description: Идентификатор комментария
+    pageable:
+      name: pageable
+      in: query
+      description: Параметры пагинации
+      required: false
+      schema:
+        $ref: '#/components/schemas/Pageable'
+  schemas:
+    AuthRequest:
+      type: object
+      description: Запрос для аутентификации пользователя
+      properties:
+        login:
+          type: string
+          description: Логин пользователя
+          example: "user123"
+      required:
+        - login
+    PageMetadata:
+      type: object
+      description: Метаданные страницы для пагинации
+      properties:
+        size:
+          type: integer
+          format: int32
+          description: Количество элементов на странице
+          example: 10
+        number:
+          type: integer
+          format: int32
+          description: Номер текущей страницы (начиная с 0)
+          example: 0
+        totalElements:
+          type: integer
+          format: int64
+          description: Общее количество элементов
+          example: 100
+        totalPages:
+          type: integer
+          format: int32
+          description: Общее количество страниц
+          example: 10
+    PagePost:
+      type: object
+      description: Страница с постами
+      properties:
+        content:
+          type: array
+          description: Список постов на текущей странице
+          items:
+            $ref: '#/components/schemas/PostDto'
+        metadata:
+          $ref: '#/components/schemas/PageMetadata'
+    PageComment:
+      type: object
+      description: Страница с комментариями
+      properties:
+        content:
+          type: array
+          description: Список комментариев на текущей странице
+          items:
+            $ref: '#/components/schemas/CommentDto'
+        metadata:
+          $ref: '#/components/schemas/PageMetadata'
+    PagePostAudit:
+      type: object
+      description: Страница с записями аудита поста
+      properties:
+        content:
+          type: array
+          description: Список записей аудита на текущей странице
+          items:
+            $ref: '#/components/schemas/PostAuditDto'
+        metadata:
+          $ref: '#/components/schemas/PageMetadata'
+    CreateUserRequest:
+      type: object
+      description: Запрос на создание нового пользователя
+      properties:
+        login:
+          type: string
+          description: Логин пользователя
+          example: "newUser"
+        email:
+          type: string
+          format: email
+          description: Электронная почта пользователя
+          example: "newuser@example.com"
+      required:
+        - login
+        - email
+    UserDto:
+      type: object
+      description: Объект передачи данных пользователя
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Уникальный идентификатор пользователя
+          example: 123
+        login:
+          type: string
+          description: Логин пользователя
+          example: "user123"
+        email:
+          type: string
+          format: email
+          description: Электронная почта пользователя
+          example: "user123@example.com"
+      required:
+        - login
+        - email
+    CreatePostRequest:
+      type: object
+      description: Запрос на создание нового поста
+      properties:
+        subject:
+          type: string
+          description: Тема (заголовок) поста
+          example: "Мой первый пост"
+        text:
+          type: string
+          description: Текст поста
+          example: "Это содержимое моего первого поста."
+        userId:
+          type: integer
+          format: int64
+          description: Идентификатор автора поста
+          example: 123
+        tags:
+          type: array
+          description: Список тегов поста
+          items:
+            $ref: '#/components/schemas/CreatePostTagDto'
+      required:
+        - subject
+        - userId
+    UpdatePostRequest:
+      type: object
+      description: Запрос на обновление существующего поста
+      properties:
+        subject:
+          type: string
+          description: Тема (заголовок) поста
+          example: "Обновленный заголовок"
+        text:
+          type: string
+          description: Текст поста
+          example: "Обновленное содержимое поста."
+        userId:
+          type: integer
+          format: int64
+          description: Идентификатор автора поста
+          example: 123
+        tags:
+          type: array
+          description: Список тегов поста
+          items:
+            $ref: '#/components/schemas/TagDto'
+      required:
+        - subject
+        - userId
+        - tags
+    PostDto:
+      type: object
+      description: Объект передачи данных поста
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Уникальный идентификатор поста
+          example: 789
+        subject:
+          type: string
+          description: Тема (заголовок) поста
+          example: "Мой первый пост"
+        text:
+          type: string
+          description: Текст поста
+          example: "Это содержимое моего первого поста."
+        author:
+          type: object
+          description: Информация об авторе поста
+          properties:
+            id:
+              type: integer
+              format: int64
+              description: Идентификатор автора
+              example: 123
+            login:
+              type: string
+              description: Логин автора
+              example: "authorUser"
+            email:
+              type: string
+              format: email
+              description: Email автора
+              example: "author@example.com"
+        likesCount:
+          type: integer
+          description: Количество лайков у поста
+          example: 5
+        tags:
+          type: array
+          description: Список тегов поста
+          items:
+            $ref: '#/components/schemas/CreatePostTagDto'
+    PostAuditDto:
+      type: object
+      description: Объект передачи данных записи аудита поста
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Уникальный идентификатор записи аудита
+          example: 1001
+        operation:
+          type: string
+          description: Тип операции (CREATE, UPDATE, DELETE)
+          example: "UPDATE"
+        changedFields:
+          type: string
+          description: Список измененных полей (в формате JSON)
+          example: '["subject", "text"]'
+        oldValues:
+          type: string
+          description: Старые значения полей (в формате JSON)
+          example: '{"subject": "Старый заголовок"}'
+        newValues:
+          type: string
+          description: Новые значения полей (в формате JSON)
+          example: '{"subject": "Новый заголовок"}'
+        changedBy:
+          type: string
+          description: Логин пользователя, выполнившего изменение
+          example: "adminUser"
+        changedAt:
+          type: string
+          format: date-time
+          description: Дата и время изменения
+          example: "2023-10-27T10:00:00Z"
+    CreatePostTagDto:
+      type: object
+      description: Объект передачи данных тега для создания поста
+      properties:
+        title:
+          type: string
+          description: Название тега
+          example: "технологии"
+      required:
+        - title
+    TagDto:
+      type: object
+      description: Объект передачи данных тега
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Уникальный идентификатор тега
+          example: 456
+        title:
+          type: string
+          description: Название тега
+          example: "технологии"
+    CreateCommentRequest:
+      type: object
+      description: Запрос на создание нового комментария
+      properties:
+        postId:
+          type: integer
+          format: int64
+          description: Идентификатор поста, к которому добавляется комментарий
+          example: 789
+        content:
+          type: string
+          description: Текст комментария
+          example: "Отличный пост!"
+        authorId:
+          type: integer
+          format: int64
+          description: Идентификатор автора комментария
+          example: 123
+      required:
+        - postId
+        - content
+        - authorId
+    UpdateCommentRequest:
+      type: object
+      description: Запрос на обновление существующего комментария
+      properties:
+        content:
+          type: string
+          description: Текст комментария
+          example: "Обновленный комментарий."
+        authorId:
+          type: integer
+          format: int64
+          description: Идентификатор автора комментария
+          example: 123
+      required:
+        - content
+        - authorId
+    CommentDto:
+      type: object
+      description: Объект передачи данных комментария
+      properties:
+        id:
+          type: integer
+          format: int64
+          description: Уникальный идентификатор комментария
+          example: 101
+        content:
+          type: string
+          description: Текст комментария
+          example: "Отличный пост!"
+        author:
+          type: object
+          description: Информация об авторе комментария
+          properties:
+            id:
+              type: integer
+              format: int64
+              description: Идентификатор автора
+              example: 123
+            login:
+              type: string
+              description: Логин автора
+              example: "commenterUser"
+            email:
+              type: string
+              format: email
+              description: Email автора
+              example: "commenter@example.com"
+    ErrorResponseTO:
+      type: object
+      description: Объект передачи данных ошибки
+      properties:
+        message:
+          type: string
+          description: Сообщение об ошибке
+          example: "Пользователь с таким логином уже существует"
+        code:
+          type: string
+          description: Код ошибки
+          example: "USER_EXISTS"
+        status:
+          type: string
+          description: Статус HTTP-ответа
+          example: "400 BAD_REQUEST"
+    Pageable:
+      description: Параметры пагинации
+      type: object
+      properties:
+        page:
+          type: integer
+          description: Номер страницы (начиная с 0)
+          example: 0
+        size:
+          type: integer
+          description: Размер страницы
+          example: 20
+  responses:
+    BadRequest:
+      description: Некорректный запрос
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponseTO'
+    Unauthorized:
+      description: Неавторизованный доступ
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponseTO'
+    NotFound:
+      description: Ресурс не найден
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponseTO'

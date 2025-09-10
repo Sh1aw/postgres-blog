@@ -1,0 +1,13 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/init/initTables.sql
+  - include:
+      file: db/changelog/init/vectorSearch.sql
+  - include:
+      file: db/changelog/init/audit/auditTables.sql
+  - include:
+      file: db/changelog/init/audit/auditFunc.sql
+  - include:
+      file: db/changelog/init/audit/auditTrigger.sql
+  - include:
+      file: db/changelog/init/initTestData.sql
